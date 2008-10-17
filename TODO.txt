@@ -1,0 +1,21 @@
+ 
+* The most important thing to do right now is to get the validations working.
+  That must be number one priority
+
+* After that is done and wrapped the next thing is the command line interface
+
+* Must consider function currying and sort out that whole mess, and how it factors
+  in with validation
+
+* next comes the command line interface
+
+* then comes the rails plugin
+
+* then maybe a merb plugin
+
+* then instant messenger plugin
+
+* then SMS plugin
+
+* 
+
