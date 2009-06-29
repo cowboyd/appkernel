@@ -1,5 +1,5 @@
-require 'spec'
-require 'appkernel'
+
+require File.dirname(__FILE__) + '/spec_helper'
 
 describe AppKernel do
 	before(:each) do
@@ -97,7 +97,7 @@ describe AppKernel do
 	
 	it "can define and call executeable commands" do
 		bangval = nil
-		@cmd = Class.new(AppKernel::Command)
+		@cmd = Class.new(AppKernel::Function)
 		@cmd.class_eval do
 			option :bang, :type => String #, :required => true, :metavar => 'STR', :alias => 'v', :desc => "", :multivalued => false
 			
@@ -113,7 +113,7 @@ describe AppKernel do
 	
 	it "passes services to commands to resolve dependencies just like other services" do
 		barval = nil
-		@cmd = Class.new(AppKernel::Command)
+		@cmd = Class.new(AppKernel::Function)
 		@cmd.class_eval do
 			uses :bar
 			
@@ -128,7 +128,7 @@ describe AppKernel do
 	it "converts string arguments into floats if possible" do
 		ival = nil
 		fval = nil
-		@cmd = Class.new(AppKernel::Command)
+		@cmd = Class.new(AppKernel::Function)
 		@cmd.class_eval do
 			option :i, :type => Integer
 			option :f, :type => Float
@@ -146,7 +146,7 @@ describe AppKernel do
 	it "can accept new ways to resolve strings into objects, and to aid in doing so, it passes in a copy of the kernel itself" do
 		k = nil
 		@kernel.resolves(Integer) {|kernel, spec| k = kernel; spec == 'five' ? 5 : 7}
-		@cmd = Class.new(AppKernel::Command)
+		@cmd = Class.new(AppKernel::Function)
 		ival = nil
 		@cmd.class_eval do
 			option :i, :type => Integer
@@ -163,7 +163,7 @@ describe AppKernel do
 	
 	it "validates the input to a command with the, and does not execute the command itself if it is not valid" do
 		executed = false
-		@cmd = Class.new(AppKernel::Command)
+		@cmd = Class.new(AppKernel::Function)
 		@cmd.class_eval do
 			option :wives, :type => Integer
 			
