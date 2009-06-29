@@ -11,6 +11,7 @@ Once defined, these functions can be used in rails, cocoa, an sms gateway, or wh
 
 * Package the bits of your application in terms of what it *does*, not the entities it contains.
 * Get a command line interface for free (that's better than vanilla script/console)
+* Transparent conversion between options and the strings that represent them.
 
 == SYNOPSIS:
 

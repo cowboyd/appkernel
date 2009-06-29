@@ -17,14 +17,18 @@ module AppKernel::Validation
           NilValue.new
         when Fixnum
           FixnumValue.new(v)
+        when Symbol
+          v
         else
           v.dup
         end
-        val.extend Check
-        val.instance_eval do
-          @_add_validation_error = lambda {|message|
-            errors[k] = message
-          }
+        unless Symbol === val
+          val.extend Check
+          val.instance_eval do
+            @_add_validation_error = lambda {|message|
+              errors[k] = message
+            }
+          end
         end
         scope.instance_variable_set("@#{k}", val)
       end      

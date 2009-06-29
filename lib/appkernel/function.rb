@@ -33,18 +33,58 @@ class AppKernel
   
   class FunctionApplication
     
-    attr_reader :return_value, :errors, :function, :options
+    attr_reader :return_value, :errors, :function, :args
     
     def initialize(fun, *args)
       @function = fun
-      @args = args
-      @options = {}
       @errors = {}
+      @args = Arguments.new(self, *args)
       @return_value = self.class.do_apply(self, *args)
     end
     
     def successful?
       @errors.empty?
+    end
+    
+    def options
+      @args.canonical
+    end
+    
+    class Arguments   
+      
+      attr_reader :canonical
+               
+      def initialize(app, *args)
+        fun = app.function
+        @app = app
+        @canonical = {}
+        @required = Set.new(fun.options.values.select {|o| o.required?})      
+        @optorder = fun.indexed_options  
+
+        for arg in args
+          if (arg.is_a?(Hash))
+            arg.each do |k,v|
+              if opt = fun.options[k.to_sym]
+                set opt, v
+              else
+                raise FunctionCallError, "unknown option :#{@name}"
+              end 
+            end
+          elsif opt = @optorder.shift
+            set opt, arg
+          end
+        end
+        for opt in @required
+          app.errors[opt.name] = "missing required option '#{@name}'"
+        end
+      end
+      
+      def set(opt, value)      
+        if resolved = opt.resolve(@app, value)
+          @canonical[opt.name] = resolved
+          @required.delete opt
+        end
+      end
     end
     
     class << self
@@ -58,31 +98,16 @@ class AppKernel
         end
       end
       
-      def do_apply(app, *args)
-        fun = app.function
-        instance = Object.new
-        indexed_options = fun.indexed_options
-        required_options = Set.new(fun.options.values.select {|o| o.required?})
-        for arg in args do
-          if arg.kind_of?(Hash)
-            arg.each do |k,v| 
-              if opt = fun.options[k.to_sym]
-                opt.set instance, v
-                required_options.delete opt
-                app.options[opt.name] = v
-              end
-            end
-          elsif opt = indexed_options.shift
-            opt.set instance, arg
-            required_options.delete opt
-            app.options[opt.name] = arg
+      def do_apply(app, *args)    
+        fun = app.function      
+        app.errors.merge! fun.validation.validate(app.options) if app.successful?
+        if app.successful?
+          scope = Object.new
+          for k,v in app.options do
+            scope.instance_variable_set("@#{k}", v)
           end
+          scope.instance_eval &fun.impl
         end
-        for opt in required_options do
-          app.errors[opt.name] = "Missing required option '#{opt.name}'"
-        end
-        app.errors.merge! fun.validation.validate(app.options)
-        instance.instance_eval &fun.impl if app.successful?
       end
     end    
   end
@@ -121,17 +146,16 @@ class AppKernel
     end
             
     class Option
+      ID = lambda {|o| o}
       attr_reader :name, :index
       def initialize(name, params)
-        @name = name
+        @name = name.to_sym
         @index = params[:index]
         @required = params[:required] == true
+        @finder = params[:find]
+        @type = params[:type]
       end
-            
-      def set(o, value)
-        o.instance_variable_set("@#{@name}", value)
-      end
-      
+                  
       def required?
         @required
       end
@@ -139,11 +163,38 @@ class AppKernel
       def optional?
         !@required
       end
+      
+      def resolve(app, value)
+        if value.nil?
+          nil
+        elsif @type 
+          if value.is_a?(@type)
+            value
+          elsif @finder
+            lookup(app, value)
+          else
+            raise FunctionDefinitionError, "Don't know how to convert #{value.class}:#{value} -> #{@type}"
+          end
+        elsif @finder
+          lookup(app, value)
+        else
+          value
+        end
+      end
+      
+      def lookup(app, value)
+        result = @finder.call(value)
+        app.errors[@name] = "couldn't find '#{@name}': #{value}" if result.nil? 
+        result
+      end
+           
     end
     
     class Validator
     end
   end
+  
+  class FunctionCallError < StandardError; end
   
   class ValidationError < StandardError
     def initialize(application)
