@@ -1,0 +1,4 @@
+== 0.1.0 2009-06-29
+
+* 1 major enhancement:
+  * functioning prototype which allows you to create portable, self-validating functions
