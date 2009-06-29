@@ -10,7 +10,7 @@ class AppKernel
     def self.included(mod)
       class << mod
         def function(symbol, &definition)
-          fun = ::AppKernel::FunctionDefinition.new(definition)
+          fun = ::AppKernel::FunctionDefinition.new(symbol, definition)
           self.const_set(symbol, fun)
           self.send(:define_method, symbol) do |*args|
             FunctionApplication.apply_or_die(fun, *args)
@@ -91,7 +91,8 @@ class AppKernel
     
     attr_reader :impl, :options, :validation
     
-    def initialize(definition)
+    def initialize(name, definition)
+      @name = name
       @options = {}
       @impl = lambda {}
       @validation = ::AppKernel::Validation::Validator.new 
@@ -113,6 +114,10 @@ class AppKernel
     
     def validate(&checks)
       @validation = AppKernel::Validation::Validator.new(&checks)
+    end
+
+    def to_s
+      "#{@name}()"
     end
             
     class Option
