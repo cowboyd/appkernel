@@ -67,7 +67,7 @@ class AppKernel
               if opt = fun.options[k.to_sym]
                 set opt, v
               else
-                raise FunctionCallError, "unknown option :#{@name}"
+                raise FunctionCallError, "unknown option :#{opt.name}"
               end 
             end
           elsif opt = @optorder.shift
@@ -75,7 +75,7 @@ class AppKernel
           end
         end
         for opt in @required
-          app.errors[opt.name] = "missing required option '#{@name}'"
+          app.errors[opt.name] = "missing required option '#{opt.name}'"
         end
       end
       
