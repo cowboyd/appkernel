@@ -185,6 +185,7 @@ describe AppKernel::Function do
         Noop(:foo => 'bar')
       }.should raise_error(AppKernel::FunctionCallError)
     end
+    
   end
   
   def function(sym, &body)

@@ -67,7 +67,7 @@ class AppKernel
               if opt = fun.options[k.to_sym]
                 set opt, v
               else
-                raise FunctionCallError, "unknown option :#{opt.name}"
+                raise FunctionCallError, "#{fun.name}: unknown option :#{k}"
               end 
             end
           elsif opt = @optorder.shift
@@ -77,12 +77,19 @@ class AppKernel
         for opt in @required
           app.errors[opt.name] = "missing required option '#{opt.name}'"
         end
+        for name in fun.options.keys
+          @canonical[name] = nil unless @canonical[name]
+        end
       end
       
       def set(opt, value)      
         if resolved = opt.resolve(@app, value)
           @canonical[opt.name] = resolved
           @required.delete opt
+        elsif !value.nil? && opt.required? 
+          @required.delete opt
+          @required.delete opt
+          @app.errors[opt.name] = "no such value '#{value}' for required option '#{opt.name}'"
         end
       end
     end
@@ -114,7 +121,7 @@ class AppKernel
   
   class FunctionDefinition
     
-    attr_reader :impl, :options, :validation
+    attr_reader :name, :impl, :options, :validation
     
     def initialize(name, definition)
       @name = name
@@ -202,7 +209,7 @@ class AppKernel
     end
     
     def message
-      @app.errors.values.first
+      "#{@app.function.name}: #{@app.errors.values.first}"
     end
   end
     
