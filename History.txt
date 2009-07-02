@@ -1,4 +1,16 @@
-== 0.1.0 2009-06-29
+== 0.1.3 2009-06-30
+
+* x major enhancements
+  * functions defined in the same scope can call themselves
+== 0.1.2 2009-07-01
+
+* 1 major enhancment:
+  * can't remember for the life of me what it was. Are you really reading this?
+
+* 1 major enhancement:
+  * functioning prototype which allows you to create portable, self-validating functions
+
+== 0.1.1 2009-06-30
 
 * 1 major enhancement:
   * functioning prototype which allows you to create portable, self-validating functions
