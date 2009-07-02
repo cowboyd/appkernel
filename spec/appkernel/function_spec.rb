@@ -70,6 +70,22 @@ describe AppKernel::Function do
     end
   end
   
+  it "allows functions in the same module to be accessible without namespacing" do
+    function :First do
+      execute do
+        Second()
+      end
+    end
+    
+    function :Second do
+      execute do
+        "Hello"
+      end
+    end
+    
+    First().should == "Hello"
+  end
+  
   it "can be called by using the apply method instead of invoking it directly" do
     function :FiveAlive do
       option :desc, :index => 1

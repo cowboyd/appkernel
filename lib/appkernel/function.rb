@@ -10,7 +10,7 @@ class AppKernel
     def self.included(mod)
       class << mod
         def function(symbol, &definition)
-          fun = ::AppKernel::FunctionDefinition.new(symbol, definition)
+          fun = ::AppKernel::FunctionDefinition.new(symbol, self, definition)
           self.const_set(symbol, fun)
           self.send(:define_method, symbol) do |*args|
             FunctionApplication.apply_or_die(fun, *args)
@@ -110,6 +110,7 @@ class AppKernel
         app.errors.merge! fun.validation.validate(app.options) if app.successful?
         if app.successful?
           scope = Object.new
+          scope.extend fun.mod
           for k,v in app.options do
             scope.instance_variable_set("@#{k}", v)
           end
@@ -121,10 +122,11 @@ class AppKernel
   
   class FunctionDefinition
     
-    attr_reader :name, :impl, :options, :validation
+    attr_reader :name, :mod, :impl, :options, :validation
     
-    def initialize(name, definition)
+    def initialize(name, mod, definition)
       @name = name
+      @mod = mod
       @options = {}
       @impl = lambda {}
       @validation = ::AppKernel::Validation::Validator.new 
