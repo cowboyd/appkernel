@@ -155,6 +155,33 @@ describe AppKernel::Function do
       TakesInt("5").should == 5
     end
     
+    describe "Default Values" do
+      it "allows for any option to have a default value" do
+        function :HasDefault do
+          option :value, :default => 5
+          
+          execute{@value}
+        end
+        
+        HasDefault().should == 5
+      end
+      
+      it "requires that the default value be the same as the option type if that is specified" do
+        lambda {
+          function :InvalidDefault do
+            option :value, :type => Integer, :default => "NOT_INT"
+          end
+        }.should raise_error
+      end
+      
+      it "warns if an option has a default and is also required" do
+        Kernel.should_receive(:warn)
+        function :QuestionableDefault do
+          option :value, :required => true, :default => 5
+        end
+      end
+    end
+    
     it "doesn't do an argument conversion if the argument is already of the correct type" do
       function :TakesInt do
         option :num, :index => 1, :type => Integer, :find => proc {|s| raise StandardError, "Hey, don't call me!"}

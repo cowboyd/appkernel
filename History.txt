@@ -3,6 +3,7 @@
 * x major enhancements
   * functions defined in the same scope can call themselves
   * validations can call function in the same module
+  * ability to provide defaults for function arguments.
 
 == 0.1.2 2009-07-01
 

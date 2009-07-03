@@ -74,6 +74,12 @@ class AppKernel
             set opt, arg
           end
         end
+        for opt in fun.options.values
+          if opt.default && !@canonical[opt.name]
+            @canonical[opt.name] = opt.default
+            @required.delete opt 
+          end
+        end
         for opt in @required
           app.errors[opt.name] = "missing required option '#{opt.name}'"
         end
@@ -89,7 +95,7 @@ class AppKernel
         elsif !value.nil? && opt.required? 
           @required.delete opt
           @required.delete opt
-          @app.errors[opt.name] = "no such value '#{value}' for required option '#{opt.name}'"
+          @app.errors[opt.name] = "no such value '#{value}' for required option '#{opt.name}'"          
         end
       end
     end
@@ -156,13 +162,25 @@ class AppKernel
             
     class Option
       ID = lambda {|o| o}
-      attr_reader :name, :index
+      attr_reader :name, :index, :default
       def initialize(name, params)
         @name = name.to_sym
         @index = params[:index]
         @required = params[:required] == true
         @finder = params[:find]
         @type = params[:type]
+        @default = params[:default]
+        validate!
+      end
+      
+      def validate!
+        if @default
+          if @type
+            raise OptionError, "#{@default} is not a kind of #{@type}" unless @default.kind_of?(@type)
+          elsif @required
+            Kernel.warn "option '#{@name}' unecessarily marked as required. It has a default value"
+          end
+        end
       end
                   
       def required?
@@ -195,8 +213,7 @@ class AppKernel
         result = @finder.call(value)
         app.errors[@name] = "couldn't find '#{@name}': #{value}" if result.nil? 
         result
-      end
-           
+      end                 
     end
     
     class Validator
@@ -204,6 +221,7 @@ class AppKernel
   end
   
   class FunctionCallError < StandardError; end
+  class OptionError < StandardError; end
   
   class ValidationError < StandardError
     def initialize(application)

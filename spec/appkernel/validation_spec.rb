@@ -25,7 +25,7 @@ describe AppKernel::Validation do
   end
   
   def validate(vars = {}, &block)
-    v = AppKernel::Validation::Validator.new(&block)
+    v = AppKernel::Validation::Validator.new(stub(:Fun, :mod => Module.new),&block)
     v.validate vars
   end
 
