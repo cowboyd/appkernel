@@ -129,7 +129,7 @@ class AppKernel
       @mod = mod
       @options = {}
       @impl = lambda {}
-      @validation = ::AppKernel::Validation::Validator.new 
+      @validation = ::AppKernel::Validation::Validator.new(self)
       self.instance_eval &definition
     end
     
@@ -147,7 +147,7 @@ class AppKernel
     end
     
     def validate(&checks)
-      @validation = AppKernel::Validation::Validator.new(&checks)
+      @validation = AppKernel::Validation::Validator.new(self, &checks)
     end
 
     def to_s

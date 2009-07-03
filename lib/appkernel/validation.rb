@@ -4,13 +4,15 @@ module AppKernel::Validation
     
     attr_reader :errors
     
-    def initialize(&block)
+    def initialize(fun, &block)
+      @fun = fun
       @body = block
     end
     
     def validate(vars = {})
       errors = {}
       scope = Object.new
+      scope.extend @fun.mod
       for k,v in vars do
         val = case v
         when nil
