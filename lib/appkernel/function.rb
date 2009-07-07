@@ -39,7 +39,7 @@ class AppKernel
       @function = fun
       @errors = {}
       @args = Arguments.new(self, *args)
-      @return_value = self.class.do_apply(self, *args)
+      @return_value = self.class.do_apply(self)
     end
     
     def successful?
@@ -75,16 +75,16 @@ class AppKernel
           end
         end
         for opt in fun.options.values
-          if opt.default && !@canonical[opt.name]
+          if @canonical[opt.name].nil? && !opt.default.nil?
             @canonical[opt.name] = opt.default
-            @required.delete opt 
+            @required.delete opt
           end
         end
         for opt in @required
           app.errors[opt.name] = "missing required option '#{opt.name}'"
         end
         for name in fun.options.keys
-          @canonical[name] = nil unless @canonical[name]
+          @canonical[name] = nil if @canonical[name].nil?
         end
       end
       
@@ -111,7 +111,7 @@ class AppKernel
         end
       end
       
-      def do_apply(app, *args)    
+      def do_apply(app)
         fun = app.function      
         app.errors.merge! fun.validation.validate(app.options) if app.successful?
         if app.successful?

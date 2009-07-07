@@ -21,6 +21,10 @@ module AppKernel::Validation
           FixnumValue.new(v)
         when Symbol
           v
+        when FalseClass
+          FalseValue.new
+        when TrueClass
+          TrueValue.new
         else
           v.dup
         end
@@ -56,6 +60,18 @@ module AppKernel::Validation
     def nil?
       true
     end
+  end
+  
+  class FalseValue < DelegateClass(FalseClass)
+    def initialize
+      super(false)
+    end
+  end
+  
+  class TrueValue < DelegateClass(TrueClass)
+    def initialize
+      super(true)      
+    end    
   end
   
   class FixnumValue < DelegateClass(Fixnum)

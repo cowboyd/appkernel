@@ -229,6 +229,15 @@ describe AppKernel::Function do
       }.should raise_error(AppKernel::FunctionCallError)
     end
     
+    it "allows false as a default value" do
+      function :FalseDefault do
+        option :bool, :default => false
+        execute {@bool}
+      end
+      
+      FalseDefault().should be(false)
+    end
+    
   end
   
   def function(sym, &body)
