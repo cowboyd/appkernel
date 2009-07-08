@@ -180,6 +180,15 @@ describe AppKernel::Function do
           option :value, :required => true, :default => 5
         end
       end
+      
+      it "sets a default option even if that option is explicitly passed in as nil" do
+        function :ExplicitNil do
+          option :value, :default => 'fun'
+          execute{@value}
+        end
+        
+        ExplicitNil(:value => nil).should == 'fun'
+      end
     end
     
     it "doesn't do an argument conversion if the argument is already of the correct type" do
@@ -187,8 +196,21 @@ describe AppKernel::Function do
         option :num, :index => 1, :type => Integer, :find => proc {|s| raise StandardError, "Hey, don't call me!"}
         execute {@num}
       end
-            
-      TakesInt(5).should == 5
+      lambda {
+        TakesInt(5).should == 5
+      }.should_not raise_error
+    end
+    
+    it "an option can have multiple valid types" do
+      function :MultipleValidOptionTypes do
+        option :bool, :index => 1, :type => [TrueClass, FalseClass], :find => proc {|s| s == "true"}
+        execute {@bool}
+      end
+      
+      MultipleValidOptionTypes("true").should be(true)
+      MultipleValidOptionTypes("false").should be(false)
+      MultipleValidOptionTypes(true).should be(true)
+      MultipleValidOptionTypes(false).should be(false)
     end
     
     it "raises an exception if it can't tell how to find a complex type" do

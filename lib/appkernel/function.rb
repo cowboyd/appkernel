@@ -85,11 +85,12 @@ class AppKernel
         end
         for name in fun.options.keys
           @canonical[name] = nil if @canonical[name].nil?
-        end
+        end        
       end
       
-      def set(opt, value)      
-        if resolved = opt.resolve(@app, value)
+      def set(opt, value)
+        resolved = opt.resolve(@app, value)      
+        if !resolved.nil?
           @canonical[opt.name] = resolved
           @required.delete opt
         elsif !value.nil? && opt.required? 
@@ -168,15 +169,15 @@ class AppKernel
         @index = params[:index]
         @required = params[:required] == true
         @finder = params[:find]
-        @type = params[:type]
+        @types = params[:type] ? [params[:type]].flatten : nil
         @default = params[:default]
         validate!
       end
       
       def validate!
         if @default
-          if @type
-            raise OptionError, "#{@default} is not a kind of #{@type}" unless @default.kind_of?(@type)
+          if @types
+            raise OptionError, "#{@default} is not a kind of #{@types.join('|')}" unless @types.detect {|t| @default.kind_of?(t)}
           elsif @required
             Kernel.warn "option '#{@name}' unecessarily marked as required. It has a default value"
           end
@@ -194,8 +195,8 @@ class AppKernel
       def resolve(app, value)
         if value.nil?
           nil
-        elsif @type 
-          if value.is_a?(@type)
+        elsif @types 
+          if @types.detect {|t| value.is_a?(t)}
             value
           elsif @finder
             lookup(app, value)
