@@ -201,7 +201,7 @@ class AppKernel
           elsif @finder
             lookup(app, value)
           else
-            raise FunctionDefinitionError, "Don't know how to convert #{value.class}:#{value} -> #{@type}"
+            raise OptionError, "Don't know how to convert #{value.class}:#{value} -> #{@type}"
           end
         elsif @finder
           lookup(app, value)
