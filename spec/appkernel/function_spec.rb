@@ -18,7 +18,6 @@ describe AppKernel::Function do
     @mod.module_eval do
       function :Say do        
         option :word
-        
         execute do
           @word
         end
