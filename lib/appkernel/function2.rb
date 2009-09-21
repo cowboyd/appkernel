@@ -203,7 +203,7 @@ class AppKernel
         end
         
         def default?
-          @default
+          !@default.nil?
         end
 
         def resolve(o)          

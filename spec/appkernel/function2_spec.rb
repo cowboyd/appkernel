@@ -181,6 +181,13 @@ describe AppKernel::Function2 do
       }.should raise_error    
     end
     
+    it "triggers an error if an option is unknown" do
+     lambda {
+       @function.call(:foo => 'bar')
+     }.should raise_error(AppKernel::OptionsError)
+    end
+    
+    
 
     describe "Default Values" do
       it "allows for any option to have a default value" do
@@ -203,17 +210,27 @@ describe AppKernel::Function2 do
         }.should raise_error(AppKernel::IllegalOptionError)
       end
       
-       it "sets a default option even if that option is explicitly passed in as nil" do
-         class_eval do
-          option :value, :default => 'fun'
-          
-          def execute
-            @value
-          end
-         end
-         @function.call(:value => nil).should == 'fun'
+      it "sets a default option even if that option is explicitly passed in as nil" do
+       class_eval do
+        option :value, :default => 'fun'
+  
+        def execute
+          @value
+        end
        end
-      
+       @function.call(:value => nil).should == 'fun'
+      end
+            
+      it "allows false as a default value" do
+        class_eval do
+          option :bool, :index => 1, :default => false
+          def execute
+            @bool
+          end
+        end
+        @function.call().should be(false)
+      end
+            
       #it "an option can have multiple valid types" do
       #  function :MultipleValidOptionTypes do
       #    option :bool, :index => 1, :type => [TrueClass, FalseClass], :find => proc {|s| s == "true"}
@@ -239,23 +256,6 @@ describe AppKernel::Function2 do
       #
       #  werd = weird.new
       #  TakesWeirdObject(:weird => werd).should == werd
-      #end
-      #
-      #it "triggers an error if an option is unknown" do
-      #  function(:Noop) {}
-      #  Noop()
-      #  lambda {
-      #    Noop(:foo => 'bar')
-      #  }.should raise_error(AppKernel::FunctionCallError)
-      #end
-      #
-      #it "allows false as a default value" do
-      #  function :FalseDefault do
-      #    option :bool, :default => false
-      #    execute {@bool}
-      #  end
-      #
-      #  FalseDefault().should be(false)
       #end
 
     end
