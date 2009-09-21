@@ -187,8 +187,7 @@ describe AppKernel::Function do
      }.should raise_error(AppKernel::OptionsError)
     end
     
-    
-
+  
     describe "Default Values" do
       it "allows for any option to have a default value" do
         class_eval do
@@ -229,36 +228,42 @@ describe AppKernel::Function do
           end
         end
         @function.call().should be(false)
-      end
-            
-      #it "an option can have multiple valid types" do
-      #  function :MultipleValidOptionTypes do
-      #    option :bool, :index => 1, :type => [TrueClass, FalseClass], :find => proc {|s| s == "true"}
-      #    execute {@bool}
-      #  end
-      #
-      #  MultipleValidOptionTypes("true").should be(true)
-      #  MultipleValidOptionTypes("false").should be(false)
-      #  MultipleValidOptionTypes(true).should be(true)
-      #  MultipleValidOptionTypes(false).should be(false)
-      #end
-      #
-      #it "raises an exception if it can't tell how to find a complex type" do
-      #  weird = Class.new
-      #  function :TakesWeirdObject do
-      #    option :weird, :type => weird
-      #    execute {@weird}
-      #  end
-      #
-      #  lambda {
-      #    TakesWeirdObject(:weird => "weird")
-      #  }.should raise_error
-      #
-      #  werd = weird.new
-      #  TakesWeirdObject(:weird => werd).should == werd
-      #end
-
+      end        
     end
+
+    describe "Complex Types" do
+      it "takes options that have multiple valid types" do
+        class_eval do
+          option :bool, :index => 1, :type => [TrueClass, FalseClass], :parse => proc {|s| s == "true"}          
+          def execute
+            @bool
+          end
+        end
+      
+       @function.call("true").should be(true)
+       @function.call("false").should be(false)
+       @function.call(true).should be(true)
+       @function.call(false).should be(false)
+      end
+      
+      it "raises an exception if it can't tell how to find a complex type" do
+       weird = Class.new
+       class_eval do
+        option :weird, :type => weird
+        def execute
+          @weird
+        end
+       end     
+       lambda {
+         @function.call(:weird => "weird")
+       }.should raise_error
+      
+       weird.new.tap do |w|
+         @function.call(:weird => w).should == w
+       end
+      end
+    end
+
   end
 
 end

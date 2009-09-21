@@ -208,11 +208,12 @@ class AppKernel
 
         def resolve(o)          
           if @type
-            if o.kind_of?(@type) then o
+            if @type.kind_of?(Class) && o.kind_of?(@type) then o
+            elsif @type.kind_of?(Enumerable) && @type.detect {|t| o.kind_of?(t)} then o
             elsif @lookup
               @lookup.call(o)
-            elsif @type.respond_to?(:lookup)
-              @type.lookup(o)
+            elsif @type.respond_to?(:to_option)
+              @type.to_option(o)
             else
               raise OptionsError, "don't know how to convert #{o} into #{@type}"
             end
@@ -222,17 +223,5 @@ class AppKernel
         end
       end
     end
-  end
-end
-
-class Integer
-  def self.lookup(spec)
-    spec.to_i
-  end
-end
-
-class Float
-  def self.lookup(spec)
-    spec.to_f
   end
 end
