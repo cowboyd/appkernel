@@ -1,237 +1,238 @@
-require 'set'
+class AppKernel
 
-class AppKernel    
-  module Function
-    
-    def apply(fun, *args)
-      FunctionApplication.new(fun, *args)
+  class OptionsError < ArgumentError
+
+    def initialize(errors)
+      super(errors.first)
     end
-    
-    def self.included(mod)
-      class << mod
-        def function(symbol, &definition)
-          fun = ::AppKernel::FunctionDefinition.new(symbol, self, definition)
-          self.const_set(symbol, fun)
-          self.send(:define_method, symbol) do |*args|
-            FunctionApplication.apply_or_die(fun, *args)
-          end
-          if self.class == Module      
-            self.send(:module_function, symbol) 
-          else
-            class << self;self;end.send(:define_method, symbol) do |*args|
-              FunctionApplication.apply_or_die(fun, *args)
+
+  end
+  
+  class IllegalOptionError < StandardError; end
+
+  class Function
+    class << self
+      def inherited(subclass)
+        super(subclass)
+        subclass.send(:include, InstanceMethods)
+        subclass.extend(ClassMethods)
+        subclass.prepare!
+      end
+    end
+
+    class Result
+      attr_reader :errors
+      attr_accessor :return_value
+
+      def initialize
+        @errors = Errors.new
+      end
+
+      def successful?
+        @errors.empty?
+      end
+
+      def verify!
+        raise OptionsError, @errors unless successful?
+      end
+    end
+
+    class Errors
+      include Enumerable
+
+      def initialize
+        @errors = Hash.new {|h, k| h[k] = []}
+        @all = []
+      end
+
+      def add(tag, message)
+        @errors[tag] << message if tag
+        @all << message
+      end
+
+      def each(&block)
+        @all.each(&block)
+      end
+
+      def [](tag)
+        @errors[tag]
+      end
+
+      def length
+        @all.length
+      end
+
+      def empty?
+        @all.empty?
+      end
+    end
+
+    module ClassMethods
+      def inherited(subclass)
+        super(subclass)
+      end
+
+      def option(name, modifiers = {})
+        @options.add(name, modifiers)
+      end
+
+      def prepare!
+        @options = Options.new
+      end
+
+      def call(*args)
+        apply(*args).tap {|result|
+          result.verify!
+        }.return_value
+      end
+
+      def apply(*args)
+        Result.new.tap do |result|
+          @options.canonicalize(args, result.errors).tap do |params|
+            if result.successful?
+              new(params).tap do |function|
+                function.validate(Validator.new(result.errors))
+                if result.successful?
+                  result.return_value = function.execute
+                end
+              end
             end
           end
+        end
+      end
+    end
+
+    class Validator
+      def initialize(errors)
+        @errors = errors
+      end
+
+      def check(condition, message = "valditation failed")
+        @errors.add(nil, message) unless condition
+      end
+    end
+
+    module InstanceMethods
+      def initialize(params)
+        for k, v in params
+          self.instance_variable_set("@#{k}", v)
+        end
+      end
+
+      def execute
+        #do something
+      end
+
+      def validate(this)
+        
+        #do something
+      end
+    end
+
+    class Options
+      def initialize
+        @options = {}
+        @indexed = []
+        @required = []
+        @defaults = []
+      end
+
+      def add(name, modifiers)
+        Option.new(name, modifiers).tap do |o|
+          @options[name] = o
+          if o.index
+            @indexed[o.index] = o
+            @indexed.compact!
+          end
+          @required << o.name if o.required?
+          @defaults << o.name if o.default?
+          if o.default? && o.type
+            raise IllegalOptionError, "option '#{o.name}' is not a #{o.type}" unless o.default.kind_of?(o.type)
+          end
+        end
+      end
+
+      def canonicalize(args, errors)
+        {}.tap do |canonical|
+          indexed = @indexed.dup
+          for arg in args
+            case arg
+              when Hash
+                resolved = {}
+                for k,v in arg
+                  if opt = @options[k]
+                    resolved[k] = opt.resolve(v)
+                  else
+                    raise OptionsError, "unknown option '#{k}'"
+                  end
+                end
+                canonical.merge! resolved
+              else
+                if opt = indexed.shift
+                  canonical[opt.name] = opt.resolve arg
+                else
+                  raise ArgumentError, "too many arguments"
+                end
+            end
+          end
+          for k in @defaults
+            canonical[k] = @options[k].default unless canonical[k]
+          end
+          canonical.reject! {|k,v| v.nil?}
+          for k in @required - canonical.keys
+            errors.add(k, "missing required option '#{k}'")
+          end
+        end
+      end
+
+      class Option
+
+        attr_reader :name, :index, :type, :default
+
+        def initialize(name, modifiers)
+          @name = name.to_sym
+          @index = modifiers[:index]
+          @required = modifiers[:required] == true
+          @lookup = modifiers[:lookup] || modifiers[:parse]
+          @type = modifiers[:type]
+          @default = modifiers[:default]
+        end
+
+        def required?
+          @required
         end
         
-        def apply(fun, *args)
-          FunctionApplication.new(fun, *args)
+        def default?
+          !@default.nil?
         end
-      end
-    end
-  end
-  
-  class FunctionApplication
-    
-    attr_reader :return_value, :errors, :function, :args
-    
-    def initialize(fun, *args)
-      @function = fun
-      @errors = {}
-      @args = Arguments.new(self, *args)
-      @return_value = self.class.do_apply(self)
-    end
-    
-    def successful?
-      @errors.empty?
-    end
-    
-    def options
-      @args.canonical
-    end
-    
-    class Arguments   
-      
-      attr_reader :canonical
-               
-      def initialize(app, *args)
-        fun = app.function
-        @app = app
-        @canonical = {}
-        @required = Set.new(fun.options.values.select {|o| o.required?})      
-        @optorder = fun.indexed_options  
 
-        for arg in args
-          if (arg.is_a?(Hash))
-            arg.each do |k,v|
-              if opt = fun.options[k.to_sym]
-                set opt, v
-              else
-                raise FunctionCallError, "#{fun.name}: unknown option :#{k}"
-              end 
+        def resolve(o)          
+          if @type
+            if o.kind_of?(@type) then o
+            elsif @lookup
+              @lookup.call(o)
+            elsif @type.respond_to?(:lookup)
+              @type.lookup(o)
+            else
+              raise OptionsError, "don't know how to convert #{o} into #{@type}"
             end
-          elsif opt = @optorder.shift
-            set opt, arg
-          end
-        end
-        for opt in fun.options.values
-          if @canonical[opt.name].nil? && !opt.default.nil?
-            @canonical[opt.name] = opt.default
-            @required.delete opt
-          end
-        end
-        for opt in @required
-          app.errors[opt.name] = "missing required option '#{opt.name}'"
-        end
-        for name in fun.options.keys
-          @canonical[name] = nil if @canonical[name].nil?
-        end        
-      end
-      
-      def set(opt, value)
-        resolved = opt.resolve(@app, value)      
-        if !resolved.nil?
-          @canonical[opt.name] = resolved
-          @required.delete opt
-        elsif !value.nil? && opt.required? 
-          @required.delete opt
-          @required.delete opt
-          @app.errors[opt.name] = "no such value '#{value}' for required option '#{opt.name}'"          
-        end
-      end
-    end
-    
-    class << self
-      
-      def apply_or_die(fun, *args)
-        app = new(fun, *args)
-        if app.successful?
-          app.return_value
-        else
-          raise ValidationError, app
-        end
-      end
-      
-      def do_apply(app)
-        fun = app.function      
-        app.errors.merge! fun.validation.validate(app.options) if app.successful?
-        if app.successful?
-          scope = Object.new
-          scope.extend fun.mod
-          for k,v in app.options do
-            scope.instance_variable_set("@#{k}", v)
-          end
-          scope.instance_eval &fun.impl
-        end
-      end
-    end    
-  end
-  
-  class FunctionDefinition
-    
-    attr_reader :name, :mod, :impl, :options, :validation
-    
-    def initialize(name, mod, definition)
-      @name = name
-      @mod = mod
-      @options = {}
-      @impl = lambda {}
-      @validation = ::AppKernel::Validation::Validator.new(self)
-      self.instance_eval &definition
-    end
-    
-    def option(name, params = {})
-      name = name.to_sym
-      @options[name] = Option.new(name, params)
-    end
-    
-    def indexed_options
-      @options.values.select {|o| o.index}.sort_by {|a| a.index}
-    end
-    
-    def execute(&impl)
-      @impl = impl
-    end
-    
-    def validate(&checks)
-      @validation = AppKernel::Validation::Validator.new(self, &checks)
-    end
-
-    def to_s
-      "#{@name}()"
-    end
-            
-    class Option
-      ID = lambda {|o| o}
-      attr_reader :name, :index, :default
-      def initialize(name, params)
-        @name = name.to_sym
-        @index = params[:index]
-        @required = params[:required] == true
-        @finder = params[:find]
-        @types = params[:type] ? [params[:type]].flatten : nil
-        @default = params[:default]
-        validate!
-      end
-      
-      def validate!
-        if @default
-          if @types
-            raise OptionError, "#{@default} is not a kind of #{@types.join('|')}" unless @types.detect {|t| @default.kind_of?(t)}
-          elsif @required
-            Kernel.warn "option '#{@name}' unecessarily marked as required. It has a default value"
-          end
-        end
-      end
-                  
-      def required?
-        @required
-      end
-      
-      def optional?
-        !@required
-      end
-      
-      def resolve(app, value)
-        if value.nil?
-          nil
-        elsif @types 
-          if @types.detect {|t| value.is_a?(t)}
-            value
-          elsif @finder
-            lookup(app, value)
           else
-            raise OptionError, "Don't know how to convert #{value.class}:#{value} -> #{@type}"
-          end
-        elsif @finder
-          lookup(app, value)
-        else
-          value
+            @lookup ? @lookup.call(o) : o
+          end                    
         end
       end
-      
-      def lookup(app, value)
-        result = @finder.call(value)
-        app.errors[@name] = "couldn't find '#{@name}': #{value}" if result.nil? 
-        result
-      end                 
-    end
-    
-    class Validator
     end
   end
-  
-  class FunctionCallError < StandardError; end
-  class OptionError < StandardError; end
-  
-  class ValidationError < StandardError
-    def initialize(application)
-      @app = application
-    end
-    
-    def message
-      "#{@app.function.name}: #{@app.errors.values.first}"
-    end
+end
+
+class Integer
+  def self.lookup(spec)
+    spec.to_i
   end
-    
+end
+
+class Float
+  def self.lookup(spec)
+    spec.to_f
+  end
 end

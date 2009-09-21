@@ -1,270 +1,264 @@
 require File.dirname(__FILE__) + '/../spec_helper'
-  
+
 describe AppKernel::Function do
-  
+
+  # Called before each example.
   before(:each) do
-    @mod = Module.new do |mod|
-      mod.module_eval do
-        include AppKernel::Function
-      end
-    end
-    extend @mod
-    @klass = Class.new.class_eval do
-      include AppKernel::Function; self
-    end
+    @function = Class.new(AppKernel::Function)
   end
-  
-  it "allows modules to define an function functions" do
-    @mod.module_eval do
-      function :Say do        
+
+  def class_eval(&block)
+    @function.class_eval(&block)
+  end
+
+
+  describe "Calling Conventions" do
+    it "allows modules to define an function functions that takes options" do
+      class_eval do
         option :word
-        execute do
+
+        def execute
           @word
         end
       end
-      Say(:word => "hello").should == "hello"
-    end
-  end
-  
-  it "allows certain options to be the default option" do
-    function :Say do
-      option :greeting, :index => 0
-      option :to, :index => 1
-      option :extra
-      
-      execute do
-        "#{@greeting} #{@to}#{(', ' + @extra) if @extra}" 
-      end            
-    end
-    Say("Hello", "Charles", :extra => "How are you?").should == "Hello Charles, How are you?"
-    Say("Hello", "Charles").should == "Hello Charles"
-    Say(:greeting => "Hello", :to => "Charles").should == "Hello Charles"    
-  end
-  
-  it "allows classes that include the module to also use the commands from that module" do
-    @mod.module_eval do
-      function :Included do
-        execute do
-          "It worked!"
-        end
-      end
-    end
-    mod = @mod
-    Class.new(Object).class_eval do
-      include mod
-      self
-    end.new.instance_eval do
-      Included().should == "It worked!"
-    end
-  end
-  
-  it "allows classes to define functions as well as modules" do
-    @klass.class_eval do
-      function :Say do
-        option :word, :index => 1
-        execute do
-          @word
-        end
-      end      
-    end
-  end
-  
-  it "allows functions in the same module to be accessible without namespacing" do
-    function :First do
-      execute do
-        Second()
-      end
-    end
-    
-    function :Second do
-      execute do
-        "Hello"
-      end
-    end
-    
-    First().should == "Hello"
-  end
-  
-  it "can be called by using the apply method instead of invoking it directly" do
-    function :FiveAlive do
-      option :desc, :index => 1
-      execute do
-        "FiveAlive is a #{@desc}"
-      end
-    end  
-    result = apply(@mod::FiveAlive, "candy bar")
-    result.return_value.should == "FiveAlive is a candy bar"
-    result.successful?.should be(true)
-  end
-  
-  it "can have required options, but they are never required by default" do
-    function :Say do
-      option :greeting, :index => 1, :required => true
-      option :to, :index => 2, :required => true
-      option :extra, :index => 3
-    end      
-    result = apply(@mod::Say, "Hello", "World", "I'm doing fine.")
-    result.successful?.should be(true)
-    result = apply(@mod::Say)
-    result.return_value.should be(nil)
-    result.successful?.should be(false)
-    result.errors[:greeting].should_not be(nil)
-    result.errors[:to].should_not be(nil)
-    result.errors[:extra].should be(nil)
-  end
-  
-  it "raises an error immediately if you try to call a function that has invalid arguments" do
-    function :Harpo do
-      option :mandatory, :required => true
+
+      @function.call(:word => "hello").should == "hello"
     end
 
-    lambda {
-      Harpo()
-    }.should raise_error(AppKernel::ValidationError)
-  end
-  
-  it "allows validation of its arguments" do
-    function :Picky do
-      option :arg, :index => 1                
-      validate do
-        @arg.check @arg == 5 && @arg != 6, "must be 5 and not be 6"
-      end      
-    end  
+    it "allows certain options to be the default option" do
 
-    apply(@mod::Picky, 5).successful?.should be(true)
-    result = apply(@mod::Picky, 6)
-    result.successful?.should be(false)
-    result.errors[:arg].should == "must be 5 and not be 6"
-    
-    result = apply(@mod::Picky, 7)
-    result.successful?.should be(false)
-    result.errors[:arg].should == "must be 5 and not be 6"
+      class_eval do
+        option :greeting, :index => 0
+        option :to, :index => 1
+        option :extra
+
+        def execute
+          "#{@greeting} #{@to}#{(', ' + @extra) if @extra}"
+        end
+      end
+      @function.call("Hello", "Charles", :extra => "How are you?").should == "Hello Charles, How are you?"
+      @function.call("Hello", "Charles").should == "Hello Charles"
+      @function.call(:greeting => "Hello", :to => "Charles").should == "Hello Charles"
+    end
+
+
+    it "can be called by using the apply method instead of invoking it directly" do
+      class_eval do
+        option :desc, :index => 1
+
+        def execute
+          "FiveAlive is a #{@desc}"
+        end
+      end
+      result = @function.apply("candy bar")
+      result.return_value.should == "FiveAlive is a candy bar"
+      result.successful?.should be(true)
+    end
+
+    it "can have required options, but they are never required by default" do
+      class_eval do
+        option :greeting, :index => 1, :required => true
+        option :to, :index => 2, :required => true
+        option :extra, :index => 3
+      end
+
+      @function.apply("Hello", "World", "I'm doing fine.").tap do |result|
+        result.successful?.should be(true)
+      end
+
+      @function.apply.tap do |result|
+        result.return_value.should be(nil)
+        result.should_not be_successful
+        result.errors[:greeting].should_not be_empty
+        result.errors[:to].should_not be_empty
+        result.errors[:extra].should be_empty
+
+        result.errors.length.should be(2)
+      end
+    end
+
+    it "raises an error immediately if you try to call a function that has invalid arguments" do
+      class_eval do
+        option :mandatory, :required => true
+      end
+
+      lambda {
+        @function.call()
+      }.should raise_error(AppKernel::OptionsError)
+    end
+
+    it "allows validation of its arguments" do
+      class_eval do
+        option :arg, :index => 1
+
+        def validate(this)
+          this.check(@arg == 5 && @arg != 6, "'arg' must be 5 and not be 6")
+        end
+
+      end
+
+      @function.apply(5).should be_successful
+      @function.apply(6).tap do |result|
+        result.should_not be_successful
+        result.errors.to_a.should == ["'arg' must be 5 and not be 6"]
+      end
+
+    end
   end
-  
+
   describe "Option Resolution" do
-    it "can take a find parameter in the function definition which tells it how to lookup arguments" do
-      function :TakesInt do
-        option :num, :index => 1, :find => proc {|s| s.to_i}
-        
-        execute do
+    it "can take a lookup parameter in the function definition which tells it how to lookup arguments" do
+      class_eval do
+        option :num, :index => 1, :lookup => proc {|s| s.to_i}
+
+        def execute
           @num
         end
       end
-      
-      TakesInt("5").should == 5
+
+      @function.call("5").should == 5
     end
     
-    describe "Default Values" do
-      it "allows for any option to have a default value" do
-        function :HasDefault do
-          option :value, :default => 5
-          
-          execute{@value}
-        end
+    it "has a :parse options which are aliases for :lookup" do
+      class_eval do
+        option :num1, :index => 1, :lookup => proc {|s| s.to_i}
+        option :num2, :index => 2, :parse => proc {|s| s.to_i}
         
-        HasDefault().should == 5
-      end
-      
-      it "requires that the default value be the same as the option type if that is specified" do
-        lambda {
-          function :InvalidDefault do
-            option :value, :type => Integer, :default => "NOT_INT"
-          end
-        }.should raise_error
-      end
-      
-      it "warns if an option has a default and is also required" do
-        Kernel.should_receive(:warn)
-        function :QuestionableDefault do
-          option :value, :required => true, :default => 5
+        def execute
+          [@num1,@num2]
         end
       end
       
-      it "sets a default option even if that option is explicitly passed in as nil" do
-        function :ExplicitNil do
-          option :value, :default => 'fun'
-          execute{@value}
-        end
+      @function.call("1", "2").should == [1,2]
+    end
+    
+    it "has default parsers/lookups if the type is specified" do
+      class_eval do
+        option :num, :type => Integer
+        option :float, :type => Float
         
-        ExplicitNil(:value => nil).should == 'fun'
+        def execute
+          OpenStruct.new({
+            :num => @num,
+            :float => @float
+          })
+        end
+      end
+      
+      @function.call(:num => "5", :float => "3.14").tap do |result|
+        result.num.should == 5
+        result.float.should == 3.14
       end
     end
     
     it "doesn't do an argument conversion if the argument is already of the correct type" do
-      function :TakesInt do
-        option :num, :index => 1, :type => Integer, :find => proc {|s| raise StandardError, "Hey, don't call me!"}
-        execute {@num}
+      class_eval do
+        option :num, :index => 1, :type => Integer, :lookup => proc {|s| raise StandardError, "Hey, don't call me!"}
+        
+        def execute
+          @num
+        end
       end
       lambda {
-        TakesInt(5).should == 5
-      }.should_not raise_error
-    end
-    
-    it "an option can have multiple valid types" do
-      function :MultipleValidOptionTypes do
-        option :bool, :index => 1, :type => [TrueClass, FalseClass], :find => proc {|s| s == "true"}
-        execute {@bool}
-      end
-      
-      MultipleValidOptionTypes("true").should be(true)
-      MultipleValidOptionTypes("false").should be(false)
-      MultipleValidOptionTypes(true).should be(true)
-      MultipleValidOptionTypes(false).should be(false)
-    end
-    
-    it "raises an exception if it can't tell how to find a complex type" do
-      weird = Class.new
-      function :TakesWeirdObject do
-        option :weird, :type => weird
-        execute {@weird}
-      end
-      
-      lambda {
-        TakesWeirdObject(:weird => "weird")
-      }.should raise_error
-      
-      werd = weird.new
-      TakesWeirdObject(:weird => werd).should == werd
+        @function.call(5)
+      }.should_not raise_error        
     end
     
     it "triggers an error if an option is required and after trying to find it, it is still nil." do
-      objects = {:foo => 'bar', :baz => "bang", }
-      
-      function :Lookup do
-        option :obj, :index => 1, :required => true, :find => proc {|key| objects[key]}
-        execute {@obj}
+     objects = {:foo => 'bar', :baz => "bang" }
+    
+      class_eval do
+        option :obj, :index => 1, :required => true, :lookup => proc {|key| objects[key]}
+        def execute
+          @obj
+        end
       end
       
-      Lookup(:foo).should == 'bar'
-      Lookup(:baz).should == 'bang'
-      lambda { 
-        Lookup(:bif)        
-      }.should raise_error
+      @function.call(:foo).should == 'bar'
+      @function.call(:baz).should == 'bang'
+      lambda {
+        @function.call(:bif)
+      }.should raise_error    
     end
     
     it "triggers an error if an option is unknown" do
-      function(:Noop) {}
-      Noop()
-      lambda {
-        Noop(:foo => 'bar')
-      }.should raise_error(AppKernel::FunctionCallError)
+     lambda {
+       @function.call(:foo => 'bar')
+     }.should raise_error(AppKernel::OptionsError)
     end
     
-    it "allows false as a default value" do
-      function :FalseDefault do
-        option :bool, :default => false
-        execute {@bool}
+    
+
+    describe "Default Values" do
+      it "allows for any option to have a default value" do
+        class_eval do
+          option :value, :default => 5
+
+          def execute
+            @value
+          end
+        end
+
+        @function.call.should == 5
+      end
+
+      it "requires that the default value be the same as the option type if that is specified" do
+        lambda {
+          class_eval do
+            option :value, :type => Integer, :default => "NOT_INT"
+          end
+        }.should raise_error(AppKernel::IllegalOptionError)
       end
       
-      FalseDefault().should be(false)
-    end
-    
-  end
+      it "sets a default option even if that option is explicitly passed in as nil" do
+       class_eval do
+        option :value, :default => 'fun'
   
-  def function(sym, &body)
-    @mod.module_eval do
-      function sym, &body
+        def execute
+          @value
+        end
+       end
+       @function.call(:value => nil).should == 'fun'
+      end
+            
+      it "allows false as a default value" do
+        class_eval do
+          option :bool, :index => 1, :default => false
+          def execute
+            @bool
+          end
+        end
+        @function.call().should be(false)
+      end
+            
+      #it "an option can have multiple valid types" do
+      #  function :MultipleValidOptionTypes do
+      #    option :bool, :index => 1, :type => [TrueClass, FalseClass], :find => proc {|s| s == "true"}
+      #    execute {@bool}
+      #  end
+      #
+      #  MultipleValidOptionTypes("true").should be(true)
+      #  MultipleValidOptionTypes("false").should be(false)
+      #  MultipleValidOptionTypes(true).should be(true)
+      #  MultipleValidOptionTypes(false).should be(false)
+      #end
+      #
+      #it "raises an exception if it can't tell how to find a complex type" do
+      #  weird = Class.new
+      #  function :TakesWeirdObject do
+      #    option :weird, :type => weird
+      #    execute {@weird}
+      #  end
+      #
+      #  lambda {
+      #    TakesWeirdObject(:weird => "weird")
+      #  }.should raise_error
+      #
+      #  werd = weird.new
+      #  TakesWeirdObject(:weird => werd).should == werd
+      #end
+
     end
   end
-  
+
 end
