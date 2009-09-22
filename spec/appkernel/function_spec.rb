@@ -164,6 +164,15 @@ describe AppKernel::Function do
       }.should_not raise_error        
     end
     
+    it "accepts nil as a valid instance of all types" do
+      class_eval do
+        option :num, :index => 1, :type => Numeric
+      end
+      
+      @function.call.should be_nil
+      @function.call(:num => nil).should be_nil
+    end
+    
     it "triggers an error if an option is required and after trying to find it, it is still nil." do
      objects = {:foo => 'bar', :baz => "bang" }
     

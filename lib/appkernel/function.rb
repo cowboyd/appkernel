@@ -68,8 +68,9 @@ class AppKernel
     end
 
     module ClassMethods
-      def inherited(subclass)
-        super(subclass)
+      
+      def options
+        @options
       end
 
       def option(name, modifiers = {})
@@ -130,30 +131,36 @@ class AppKernel
     end
 
     class Options
+      
+      attr_reader :options
+      
       def initialize
         @options = {}
         @indexed = []
         @required = []
         @defaults = []
+        @presets = {}
       end
 
       def add(name, modifiers)
-        Option.new(name, modifiers).tap do |o|
-          @options[name] = o
-          if o.index
-            @indexed[o.index] = o
-            @indexed.compact!
-          end
-          @required << o.name if o.required?
-          @defaults << o.name if o.default?
-          if o.default? && o.type
-            raise IllegalOptionError, "option '#{o.name}' is not a #{o.type}" unless o.default.kind_of?(o.type)
-          end
+        ingest Option.new(name, modifiers)
+      end
+      
+      def ingest(o)        
+        @options[o.name] = o
+        if o.index
+          @indexed[o.index] = o
+          @indexed.compact!
         end
+        @required << o.name if o.required?
+        @defaults << o.name if o.default?
+        if o.default? && o.type
+          raise IllegalOptionError, "option '#{o.name}' is not a #{o.type}" unless o.default.kind_of?(o.type)
+        end                
       end
 
-      def canonicalize(args, errors)
-        {}.tap do |canonical|
+      def canonicalize(args, errors, augment = true)
+        @presets.dup.tap do |canonical|
           indexed = @indexed.dup
           for arg in args
             case arg
@@ -175,16 +182,18 @@ class AppKernel
                 end
             end
           end
-          for k in @defaults
-            canonical[k] = @options[k].default unless canonical[k]
-          end
-          canonical.reject! {|k,v| v.nil?}
-          for k in @required - canonical.keys
-            errors.add(k, "missing required option '#{k}'")
+          if augment
+            for k in @defaults
+              canonical[k] = @options[k].default unless canonical[k]
+            end
+            canonical.reject! {|k,v| v.nil?}
+            for k in @required - canonical.keys
+              errors.add(k, "missing required option '#{k}'")
+            end
           end
         end
       end
-
+      
       class Option
 
         attr_reader :name, :index, :type, :default
@@ -206,8 +215,9 @@ class AppKernel
           !@default.nil?
         end
 
-        def resolve(o)          
-          if @type
+        def resolve(o)
+          if o.nil? then nil  
+          elsif @type
             if @type.kind_of?(Class) && o.kind_of?(@type) then o
             elsif @type.kind_of?(Enumerable) && @type.detect {|t| o.kind_of?(t)} then o
             elsif @lookup
