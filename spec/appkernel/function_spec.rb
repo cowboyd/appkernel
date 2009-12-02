@@ -2,7 +2,6 @@ require File.dirname(__FILE__) + '/../spec_helper'
 
 describe AppKernel::Function do
 
-  # Called before each example.
   before(:each) do
     @function = Class.new(AppKernel::Function)
   end
