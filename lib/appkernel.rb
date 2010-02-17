@@ -4,4 +4,5 @@ class AppKernel
   require 'appkernel/function'
   require 'appkernel/curry'
   require 'appkernel/types'
+  require 'appkernel/tap'
 end

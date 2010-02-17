@@ -3,7 +3,7 @@ class AppKernel
   class OptionsError < ArgumentError
 
     def initialize(errors)
-      super(errors.first)
+      super(errors[0])
     end
 
   end
