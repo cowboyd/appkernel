@@ -108,8 +108,8 @@ class AppKernel
         @errors = errors
       end
 
-      def check(condition, message = "valditation failed")
-        @errors.add(nil, message) unless condition
+      def check(condition, message = "valditation failed", tag=nil)
+        @errors.add(tag, message) unless condition
       end
     end
 

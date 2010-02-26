@@ -75,7 +75,10 @@ describe AppKernel::Function do
         result.errors.length.should be(2)
       end
     end
+  end
 
+  describe "Error Handling" do
+      
     it "raises an error immediately if you try to call a function that has invalid arguments" do
       class_eval do
         option :mandatory, :required => true
@@ -103,6 +106,20 @@ describe AppKernel::Function do
       end
 
     end
+    
+    it "allows associating arbitrary tags with errors" do
+      class_eval do
+        def validate(this)
+          this.check(false, "Not!", :tag)
+        end
+      end
+      
+      @function.apply.errors[:tag].should_not be_nil
+    end
+    
+    it "supports hash syntax for specifying error tags"
+    
+    it "throws a tag instead of OptionsError validation error if tag is an instance of Error"
   end
 
   describe "Option Resolution" do
