@@ -212,6 +212,7 @@ describe AppKernel::Function do
      }.should raise_error(AppKernel::OptionsError)
     end
     
+    it "is an error if the resolved option is not of the specified type"
   
     describe "Default Values" do
       it "allows for any option to have a default value" do
