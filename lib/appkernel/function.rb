@@ -160,9 +160,11 @@ class AppKernel
       end
 
       def canonicalize(args, errors, augment = true)
+        args = args.dup
         @presets.dup.tap do |canonical|
           indexed = @indexed.dup
-          for arg in args
+          while !(arg = args.shift).nil?
+          # for arg in args
             case arg
               when Hash
                 resolved = {}
@@ -175,8 +177,13 @@ class AppKernel
                 end
                 canonical.merge! resolved
               else
-                if opt = indexed.shift
-                  canonical[opt.name] = opt.resolve arg
+                if opt = indexed.shift                  
+                  canonical[opt.name] = opt.resolve(arg)
+                  if opt.greedy?
+                    while !args.first.nil? && !(args.first.kind_of?(Hash) || args.first.kind_of?(Array))
+                      canonical[opt.name] += opt.resolve(args.shift)
+                    end
+                  end
                 else
                   raise ArgumentError, "too many arguments"
                 end
@@ -186,7 +193,7 @@ class AppKernel
             for k in @defaults
               canonical[k] = @options[k].default unless canonical[k]
             end
-            canonical.reject! {|k,v| v.nil?}
+            canonical.reject! {|k,v| v.nil? || (@options[k] && @options[k].list? && v.empty?)}
             for k in @required - canonical.keys
               errors.add(k, "missing required option '#{k}'")
             end
@@ -195,16 +202,32 @@ class AppKernel
       end
       
       class Option
+        
+        class ::Symbol
+          def [](*dontcare)
+            Option.new(self, :list => true)
+          end
 
-        attr_reader :name, :index, :type, :default
+          def *(*dontcare)
+            Option.new(self, :list => true, :greedy => true)
+          end
+        end
+        
+        attr_reader :name, :index, :type, :default, :modifiers
 
-        def initialize(name, modifiers)
+        def initialize(name, modifiers = {})
+          if name.kind_of?(Option)
+            modifiers = modifiers.merge(name.modifiers)
+          end
           @name = name.to_sym
+          @modifiers = modifiers
           @index = modifiers[:index]
           @required = modifiers[:required] == true
           @lookup = modifiers[:lookup] || modifiers[:parse]
           @type = modifiers[:type]
           @default = modifiers[:default]
+          @list = modifiers[:list]
+          @greedy = modifiers[:greedy]
         end
 
         def required?
@@ -214,9 +237,23 @@ class AppKernel
         def default?
           !@default.nil?
         end
+        
+        def list?
+          @list
+        end
+        
+        def greedy?
+          @greedy
+        end
+                
+        def to_sym
+          @name
+        end
 
-        def resolve(o)
-          if o.nil? then nil  
+        def resolve(o, single = false)
+          if o.nil? then nil
+          elsif @list && !single
+            o.kind_of?(Array) ? o.map {|v| resolve(v,true)} : [resolve(o, true)]  
           elsif @type
             if @type.kind_of?(Class) && o.kind_of?(@type) then o
             elsif @type.kind_of?(Enumerable) && @type.detect {|t| o.kind_of?(t)} then o

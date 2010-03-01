@@ -9,8 +9,15 @@ describe AppKernel::Function do
   def class_eval(&block)
     @function.class_eval(&block)
   end
+  
+  def funcall(*args)
+    @function.call(*args)
+  end
 
-
+  def funapply(*args)
+    @function.apply(*args)
+  end
+  
   describe "Calling Conventions" do
     it "allows modules to define an function functions that takes options" do
       class_eval do
@@ -290,6 +297,57 @@ describe AppKernel::Function do
       end
     end
 
+    describe "Option with multiple values" do
+      
+      it "can automatically convert themselves into an array" do
+        class_eval do
+          option :arguments[], :index => 0
+          def execute
+            @arguments
+          end
+        end
+        funcall(1).should == [1]
+      end
+      
+      it "leaves argument alone if it is already an array" do
+        class_eval do
+          option :args[], :index => 0
+          def execute;@args;end
+        end        
+        funcall([1]).should == [1]
+      end
+      
+      it "can be greedy and slurp up all remaining arguments" do
+        class_eval do
+          option :arguments*[], :index => 0
+          def execute
+            @arguments
+          end          
+        end
+        funcall(1,2,3,4).should == [1,2,3,4]
+        funcall([1,2,3,4]).should == [1,2,3,4]
+      end
+      
+      it "converts all the arguments in an array to their expected types" do
+        class_eval do
+          option :integers*[], :type => Integer, :index => 0
+          def execute
+            @integers
+          end          
+        end
+        funcall("1","2","3").should == [1,2,3]
+        funcall(["1","2","3"]).should == [1,2,3]
+      end
+      
+      it "must be non-empty if it is required" do
+        class_eval do
+          option :args[], :required => true, :index => 0
+        end
+        funapply(:args => []).should_not be_successful
+      end
+      
+    end
+    
   end
 
 end
