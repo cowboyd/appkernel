@@ -13,16 +13,14 @@ describe "Function Currying " do
         end
         
       end
-    end        
-    
+    end            
   end
   
   it "new functions to be created by fixing values of specified options" do    
     @mult.curry(2).tap do |double|
       double.call(3).should == 6
       double.call(:rhs => 10).should == 20
-    end
-    
+    end    
   end
   
   it "is an error to curry options that do not exists" do
