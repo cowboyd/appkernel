@@ -1,6 +1,9 @@
-
+== 0.3.0 2010-03-XX
+* 2 major enhancement
+  * specify list parameters
+  * allow list parameters to be greedy and slurp lots of arguments.
+  
 == 0.2.0 2009-10-07
-
 * 4 major enhancements
   * functions now defined as classes, not via closures
   * validation method, and validation chaining
@@ -8,7 +11,6 @@
   * generic handlers for looking up appkernel values
 
 == 0.1.3 2009-08-31
-
 * 4 major enhancements
   * functions defined in the same scope can call themselves
   * validations can call function in the same module
@@ -16,15 +18,13 @@
   * allow multiple classes in the :type option attribute
 
 == 0.1.2 2009-07-01
-
-* 1 major enhancment:
+* 1 major enhancement:
   * can't remember for the life of me what it was. Are you really reading this?
 
 * 1 major enhancement:
   * functioning prototype which allows you to create portable, self-validating functions
 
 == 0.1.1 2009-06-30
-
 * 1 major enhancement:
   * functioning prototype which allows you to create portable, self-validating functions
 
