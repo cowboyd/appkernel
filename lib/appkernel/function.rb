@@ -25,7 +25,7 @@ class AppKernel
       end
 
       def verify!
-        raise ArgumentError, @errors.first unless successful?
+        raise ArgumentError, @errors[0] unless successful?
       end
     end
 
