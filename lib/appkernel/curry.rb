@@ -16,7 +16,7 @@ class AppKernel
         end
         applied.each do |option|
           if option.required? && @presets[option.name].nil?
-            raise AppKernel::OptionsError, "required option '#{option.name}' may not be nil"
+            raise ArgumentError, "required option '#{option.name}' may not be nil"
           end
         end
       end

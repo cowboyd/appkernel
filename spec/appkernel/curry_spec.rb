@@ -26,13 +26,13 @@ describe "Function Currying " do
   it "is an error to curry options that do not exists" do
     lambda {
       @mult.curry(:hello => "world")
-    }.should raise_error(AppKernel::OptionsError)
+    }.should raise_error(ArgumentError)
   end
   
   it "the curried options will not be overriden and in fact will raise an error if an attempt is made to do so" do
     lambda {
       @mult.curry(:lhs => 2).call(:lhs => 4, :rhs => 5)
-    }.should raise_error(AppKernel::OptionsError)
+    }.should raise_error(ArgumentError)
   end
   
   it "requires all curried options to go through resolution and type matching" do
@@ -51,7 +51,7 @@ describe "Function Currying " do
   it "is an error to have a nil value for a curried option if that option is required" do
     lambda {
       @mult.curry(:lhs => nil)
-    }.should raise_error(AppKernel::OptionsError)
+    }.should raise_error(ArgumentError)
   end
   
   it "automatically nils out an option if it is curried with nil" do

@@ -1,12 +1,4 @@
 class AppKernel
-
-  class OptionsError < ArgumentError
-
-    def initialize(errors)
-      super(errors[0])
-    end
-
-  end
   
   class IllegalOptionError < StandardError; end
 
@@ -33,7 +25,7 @@ class AppKernel
       end
 
       def verify!
-        raise OptionsError, @errors unless successful?
+        raise ArgumentError, @errors.first unless successful?
       end
     end
 
@@ -172,7 +164,7 @@ class AppKernel
                   if opt = @options[k]
                     resolved[k] = opt.resolve(v)
                   else
-                    raise OptionsError, "unknown option '#{k}'"
+                    raise ArgumentError, "unknown option '#{k}'"
                   end
                 end
                 canonical.merge! resolved
@@ -262,7 +254,7 @@ class AppKernel
             elsif @type.respond_to?(:to_option)
               @type.to_option(o)
             else
-              raise OptionsError, "don't know how to convert #{o} into #{@type}"
+              raise ArgumentError, "don't know how to convert #{o} into #{@type}"
             end
           else
             @lookup ? @lookup.call(o) : o

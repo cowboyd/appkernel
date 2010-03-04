@@ -92,8 +92,8 @@ describe AppKernel::Function do
       end
 
       lambda {
-        @function.call()
-      }.should raise_error(AppKernel::OptionsError)
+        funcall()
+      }.should raise_error(ArgumentError)
     end
 
     it "allows validation of its arguments" do
@@ -216,7 +216,7 @@ describe AppKernel::Function do
     it "triggers an error if an option is unknown" do
      lambda {
        @function.call(:foo => 'bar')
-     }.should raise_error(AppKernel::OptionsError)
+     }.should raise_error(ArgumentError)
     end
     
     it "is an error if the resolved option is not of the specified type"
