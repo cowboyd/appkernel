@@ -71,6 +71,18 @@ class AppKernel
 
       def prepare!
         @options = Options.new
+        call = Module.new.tap do |mod|
+          unless self.name.empty?
+            fun = self
+            path = self.name.split(/::/)
+            simple_name = path[path.length - 1]
+            fun_name = simple_name.gsub(/(\w)([A-Z])([a-z])/) {"#{$1}_#{$2.downcase}#{$3}"}.downcase
+            mod.send(:define_method, fun_name) do |*args|
+              fun.call(*args)
+            end
+          end
+        end
+        self.const_set(:Call, call)
       end
 
       def call(*args)

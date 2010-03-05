@@ -351,7 +351,17 @@ describe AppKernel::Function do
   end
   
   describe "Invocation" do
-    it "has a module that contains a method which will invoke that function with call"
+    it "has a module that contains a method which will invoke that function with call" do
+      class AppKernel::TestFunction < AppKernel::Function
+        def execute
+          "hi there"          
+        end
+      end
+      Object.new.tap do |obj|
+        obj.extend(AppKernel::TestFunction::Call)
+        obj.test_function().should == "hi there"
+      end
+    end
   end
 
 end
