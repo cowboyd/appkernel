@@ -349,5 +349,9 @@ describe AppKernel::Function do
     end
     
   end
+  
+  describe "Invocation" do
+    it "has a module that contains a method which will invoke that function with call"
+  end
 
 end
