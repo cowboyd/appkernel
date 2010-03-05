@@ -72,7 +72,7 @@ class AppKernel
       def prepare!
         @options = Options.new
         call = Module.new.tap do |mod|
-          unless self.name.empty?
+          unless self.name.nil? || self.name.empty?
             fun = self
             path = self.name.split(/::/)
             simple_name = path[path.length - 1]
