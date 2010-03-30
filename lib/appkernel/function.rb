@@ -157,7 +157,7 @@ class AppKernel
           @indexed.compact!
         end
         @required << o.name if o.required?
-        @defaults << o.name if o.default?
+        @defaults << o.name if o.default?        
         if o.default? && o.type
           raise IllegalOptionError, "default value #{o.default.inspect} for option '#{o.name}' is not a #{o.type}" unless o.default.kind_of?(o.type)
         end                
@@ -229,9 +229,14 @@ class AppKernel
           @required = modifiers[:required] == true
           @lookup = modifiers[:lookup] || modifiers[:parse]
           @type = modifiers[:type]
-          @default = modifiers[:default]
           @list = modifiers[:list]
           @greedy = modifiers[:greedy]
+          begin
+            @default = resolve(modifiers[:default])            
+          rescue StandardError => e
+            raise IllegalOptionError, "invalid default value for option '#{name}': #{e.message}"
+          end
+          
         end
 
         def required?
@@ -264,7 +269,11 @@ class AppKernel
             elsif @lookup
               @lookup.call(o)
             elsif @type.respond_to?(:to_option)
-              @type.to_option(o)
+              begin
+                @type.to_option(o)
+              rescue StandardError => e
+                raise ArgumentError, "don't know how to convert #{o} into #{@type}: #{e}"
+              end
             else
               raise ArgumentError, "don't know how to convert #{o} into #{@type}"
             end

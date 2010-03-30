@@ -237,10 +237,21 @@ describe AppKernel::Function do
       it "requires that the default value be the same as the option type if that is specified" do
         lambda {
           class_eval do
-            option :value, :type => Integer, :default => "NOT_INT"
-          end
+            option :value, :type => Integer, :default => Object.new            
+          end          
         }.should raise_error(AppKernel::IllegalOptionError)
       end
+      
+      it "will try to convert default values into the option type before setting them" do
+        class_eval do
+          option :value, :type => Integer, :default => "1"
+          def execute
+            @value
+          end          
+        end
+        
+        @function.call.should == 1
+      end 
       
       it "sets a default option even if that option is explicitly passed in as nil" do
        class_eval do
