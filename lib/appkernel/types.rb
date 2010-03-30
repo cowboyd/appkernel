@@ -23,3 +23,20 @@ class AppKernel
     end
   end
 end
+
+require 'net/http'
+class URI::HTTP
+  def self.to_option(spec)
+    uri = URI.parse(spec)
+    case uri.scheme
+    when "http" then uri
+    when nil then to_option("http://#{spec}")
+    else
+      if uri.host.nil?
+        to_option("http://#{spec}")
+      else
+        raise "#{spec.inspect} is not a valid http url"
+      end
+    end
+  end
+end

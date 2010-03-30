@@ -44,6 +44,35 @@ describe "Type Conversion" do
     end
   end
   
+  require 'net/http'
+  describe URI::HTTP do
+    it "converts URI::HTTP" do
+      t(URI::HTTP, "http://google.com:2020/search").tap do |uri|
+        uri.should be_kind_of(URI::HTTP)
+        uri.scheme.should == "http"
+        uri.host.should == "google.com"
+        uri.port.should == 2020
+        uri.path.should == "/search"
+      end
+    end
+    
+    it "can guess the protocol if you don't provide it'" do |uri|
+      t(URI::HTTP, "google.com:4098/search").tap do |uri|
+        uri.should be_kind_of(URI::HTTP)
+        uri.scheme.should == 'http'
+        uri.host.should == "google.com"
+        uri.port.should == 4098
+        uri.path.should == "/search"        
+      end
+    end
+    
+    it "does something, we know not yet what when you give some other protocol" do
+      lambda {
+        t(URI::HTTP, "ldap://funbones.com")
+      }.should raise_error(StandardError)
+    end
+  end
+  
   def t(type, str)
     type.to_option(str)
   end
