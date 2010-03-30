@@ -159,7 +159,7 @@ class AppKernel
         @required << o.name if o.required?
         @defaults << o.name if o.default?
         if o.default? && o.type
-          raise IllegalOptionError, "option '#{o.name}' is not a #{o.type}" unless o.default.kind_of?(o.type)
+          raise IllegalOptionError, "default value #{o.default.inspect} for option '#{o.name}' is not a #{o.type}" unless o.default.kind_of?(o.type)
         end                
       end
 
