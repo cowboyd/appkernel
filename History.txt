@@ -2,9 +2,10 @@
 * 2 major enhancement
   * specify list parameters
   * allow list parameters to be greedy and slurp lots of arguments.
-* 2 minor enhancements
+* 3 minor enhancements
   * automatically convert default values into canonical types.
   * add a default conversion for URI::HTTP 
+  * better error reporting
   
 == 0.2.0 2009-10-07
 * 4 major enhancements

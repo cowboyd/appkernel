@@ -25,11 +25,13 @@ class AppKernel
       end
 
       def verify!
-        raise ArgumentError, @errors[0] unless successful?
+        raise ArgumentError, @errors.all.join('; ') unless successful?
       end
     end
 
     class Errors
+      attr_reader :all
+
       include Enumerable
 
       def initialize
