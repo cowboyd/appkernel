@@ -146,6 +146,7 @@ class AppKernel
         @required = []
         @defaults = []
         @presets = {}
+        @greedy = nil
       end
 
       def add(name, modifiers)
@@ -162,39 +163,44 @@ class AppKernel
         @defaults << o.name if o.default?        
         if o.default? && o.type
           raise IllegalOptionError, "default value #{o.default.inspect} for option '#{o.name}' is not a #{o.type}" unless o.default.kind_of?(o.type)
-        end                
+        end
+        if o.greedy?
+          raise IllegalOptionError, "a function may not have more than one greedy option. has (#{@greedy.name}, #{o.name})" if @greedy
+          @greedy = o
+        end
+        raise IllegalOptionError, "a greedy option may not have an index" if o.greedy? && o.index
       end
 
-      def canonicalize(args, errors, augment = true)
-        args = args.dup
-        @presets.dup.tap do |canonical|
-          indexed = @indexed.dup
-          while !(arg = args.shift).nil?
-          # for arg in args
-            case arg
-              when Hash
-                resolved = {}
-                for k,v in arg
-                  if opt = @options[k]
-                    resolved[k] = opt.resolve(v)
-                  else
-                    raise ArgumentError, "unknown option '#{k}'"
-                  end
-                end
-                canonical.merge! resolved
-              else
-                if opt = indexed.shift                  
-                  canonical[opt.name] = opt.resolve(arg)
-                  if opt.greedy?
-                    while !args.first.nil? && !(args.first.kind_of?(Hash) || args.first.kind_of?(Array))
-                      canonical[opt.name] += opt.resolve(args.shift)
-                    end
-                  end
-                else
-                  raise ArgumentError, "too many arguments"
-                end
+
+
+      #first, exctract all hash options
+      #if we find one we love, use it
+      #otherwise, if there's a slurpy option, throw it on the pile
+      #otherwise, it's an error.
+      def canonicalize(args, errors, augment = true)        
+        positionals, parameters, rest = comb(args)
+        unless @greedy
+          errors.add(nil,"too many arguments (#{positionals.length} for #{@indexed.length})") if positionals.length > @indexed.length
+          for hash in rest
+            for k,v in hash
+              errors.add(k, "unknown option '#{k}'")
             end
           end
+          return unless errors.empty?
+        end
+        @presets.dup.tap do |canonical|
+          canonical[@greedy.name] = rest if @greedy
+          for name,value in parameters
+            canonical[name] = @options[name].resolve(value)
+          end          
+          positionals.length.times do |i|          
+            if opt = @indexed[i]
+              canonical[opt.name] = opt.resolve(positionals[i])
+            end
+          end
+          if @greedy
+            canonical[@greedy.name] = rest.map {|value| @greedy.resolve(value)}
+          end          
           if augment
             for k in @defaults
               canonical[k] = @options[k].default unless canonical[k]
@@ -204,7 +210,35 @@ class AppKernel
               errors.add(k, "missing required option '#{k}'")
             end
           end
+          
+        end      
+      end
+      
+      def comb(args)
+        positionals = []
+        parameters = {}
+        rest_parameters = {}
+        rest = []
+        index = @indexed.length
+        for arg in args
+          if Hash === arg
+            for name,value in arg
+              key = name.to_sym
+              if opt = @options[key]
+                parameters[opt.name] = value
+              else
+                rest_parameters[key] = value
+              end
+            end
+          elsif index > 0
+            index -= 1
+            positionals << arg
+          else
+            rest << arg
+          end
         end
+        rest << rest_parameters unless rest_parameters.empty?
+        return positionals, parameters, rest
       end
       
       class Option

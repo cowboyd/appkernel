@@ -218,9 +218,7 @@ describe AppKernel::Function do
        @function.call(:foo => 'bar')
      }.should raise_error(ArgumentError)
     end
-    
-    it "is an error if the resolved option is not of the specified type"
-  
+      
     describe "Default Values" do
       it "allows for any option to have a default value" do
         class_eval do
@@ -327,21 +325,10 @@ describe AppKernel::Function do
         end        
         funcall([1]).should == [1]
       end
-      
-      it "can be greedy and slurp up all remaining arguments" do
-        class_eval do
-          option :arguments*[], :index => 0
-          def execute
-            @arguments
-          end          
-        end
-        funcall(1,2,3,4).should == [1,2,3,4]
-        funcall([1,2,3,4]).should == [1,2,3,4]
-      end
-      
+            
       it "converts all the arguments in an array to their expected types" do
         class_eval do
-          option :integers*[], :type => Integer, :index => 0
+          option :integers*[], :type => Integer
           def execute
             @integers
           end          
@@ -358,7 +345,62 @@ describe AppKernel::Function do
       end
       
     end
+
+    describe "Greedy Options" do
+      
+      it "can have a greedy option which slurps all remaining arguments" do
+        class_eval do
+          option :arguments*[]
+          def execute
+            @arguments
+          end          
+        end
+        funcall(1,2,3,4).should == [1,2,3,4]
+        funcall([1,2,3,4]).should == [1,2,3,4]
+      end
+      
+      it "may not have more than one greedy option" do
+        expect {
+          class_eval do
+            option :greedy*[]
+            option :greedytoo*[]
+          end
+        }.to raise_error(AppKernel::IllegalOptionError)
+      end
+      it "may not have an index" do
+        expect {
+          class_eval do
+              option :greedy*[], :index => 0
+          end
+          }.to raise_error(AppKernel::IllegalOptionError)        
+      end
+      
+      it "defaults to the empty array" do
+        class_eval do
+          option :greedy*[]
+        end
+        def execute
+          @greedy.should == []
+        end
+      end
+      
+      context "with hash options" do
+        it "will slurp all hashes from the end of the argument list" do
+          class_eval do
+            option :greedy*[]
+          end
+          def execute
+            @greedy.should == [1,2,3, {:foo => 'bar', :baz => 'bif'}]
+          end
+        
+          @function.call(1,2,4, :foo => 'bar', :baz => 'bif')
+        end
+        
+        it "will slurp hashes from the begining of the argument list"
+        it "will extract those arguments which it knows, but leave those which it does not"
     
+      end
+    end
   end
   
   describe "Invocation" do
