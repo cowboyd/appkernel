@@ -199,7 +199,7 @@ class AppKernel
             end
           end
           if @greedy
-            canonical[@greedy.name] = rest.map {|value| @greedy.resolve(value)}
+            canonical[@greedy.name] = @greedy.resolve(rest)
           end          
           if augment
             for k in @defaults

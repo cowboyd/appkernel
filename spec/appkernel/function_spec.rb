@@ -334,7 +334,6 @@ describe AppKernel::Function do
           end          
         end
         funcall("1","2","3").should == [1,2,3]
-        funcall(["1","2","3"]).should == [1,2,3]
       end
       
       it "must be non-empty if it is required" do
@@ -356,7 +355,6 @@ describe AppKernel::Function do
           end          
         end
         funcall(1,2,3,4).should == [1,2,3,4]
-        funcall([1,2,3,4]).should == [1,2,3,4]
       end
       
       it "may not have more than one greedy option" do
@@ -396,7 +394,15 @@ describe AppKernel::Function do
           @function.call(1,2,4, :foo => 'bar', :baz => 'bif')
         end
         
-        it "will slurp hashes from the begining of the argument list"
+        it "will slurp hashes from the begining of the argument list" do
+          class_eval do
+            option :greedy*[]
+            def execute
+              @greedy.should == [1,2,3, {:foo => 'bar'}]
+            end
+          end
+          @function.call({:foo => 'bar'},1,2,3)
+        end
         it "will extract those arguments which it knows, but leave those which it does not"
     
       end
