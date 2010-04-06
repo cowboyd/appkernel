@@ -22,7 +22,7 @@ describe "Type Conversion" do
     it "can call with a boolean function" do
       function = Class.new(AppKernel::Function).class_eval do
         self.tap do
-          option :bool, :type => AppKernel::Boolean, :index => 1
+          option :bool, :type => AppKernel::Boolean, :index => 1, :default => false
           def execute
             @bool
           end

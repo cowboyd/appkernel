@@ -162,7 +162,13 @@ class AppKernel
         @required << o.name if o.required?
         @defaults << o.name if o.default?        
         if o.default? && o.type
-          raise IllegalOptionError, "default value #{o.default.inspect} for option '#{o.name}' is not a #{o.type}" unless o.default.kind_of?(o.type)
+          if Enumerable === o.type 
+            if not o.type.detect {|t| o.default.kind_of?(t)}
+              raise IllegalOptionError, "default value #{o.default.inspect} for option '#{o.name}' is not in #{o.type.inspect}"
+            end            
+          elsif not o.default.kind_of?(o.type)
+            raise IllegalOptionError, "default value #{o.default.inspect} for option '#{o.name}' is not a #{o.type}"
+          end
         end
         if o.greedy?
           raise IllegalOptionError, "a function may not have more than one greedy option. has (#{@greedy.name}, #{o.name})" if @greedy
