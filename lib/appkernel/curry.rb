@@ -9,7 +9,10 @@ class AppKernel
     
     class Options
       def curry(parent, params)
-        @presets.merge! parent.canonicalize([params], nil, false)        
+        errors = Errors.new
+        presets = parent.canonicalize([params], errors, false)
+        raise ArgumentError, errors.all.join('; ') unless errors.empty?
+        @presets.merge! presets
         applied, unapplied = parent.options.values.partition {|o| @presets.has_key?(o.name)}
         unapplied.each do |option|
           ingest option
