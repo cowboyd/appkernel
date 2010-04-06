@@ -8,3 +8,8 @@ end
 
 $:.unshift(File.dirname(__FILE__) + '/../lib')
 require 'appkernel'
+
+def rputs(msg)
+  puts(ERB::Util.h(msg) + "<br/>")
+end
+
