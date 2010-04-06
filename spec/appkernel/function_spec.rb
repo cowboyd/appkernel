@@ -403,7 +403,20 @@ describe AppKernel::Function do
           end
           @function.call({:foo => 'bar'},1,2,3)
         end
-        it "will extract those arguments which it knows, but leave those which it does not"
+                
+        it "will extract those arguments which it knows, but leave those which it does not" do
+          class_eval do
+            option :known
+            option :greedy*[]
+            
+            def execute
+              @known.should == 'factor'
+              @greedy.should == [1,2,{:three => 'four', :five => 'six'}]
+            end
+          end
+          
+          @function.call(1,2,:known => 'factor', :three => 'four', :five => "six")
+        end
     
       end
     end

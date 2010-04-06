@@ -209,8 +209,7 @@ class AppKernel
             for k in @required - canonical.keys
               errors.add(k, "missing required option '#{k}'")
             end
-          end
-          
+          end          
         end      
       end
       
