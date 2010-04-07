@@ -155,10 +155,7 @@ class AppKernel
       
       def ingest(o)        
         @options[o.name] = o
-        if o.index
-          @indexed[o.index] = o
-          @indexed.compact!
-        end
+        @indexed[o.index] = o if o.index
         @required << o.name if o.required?
         @defaults << o.name if o.default?        
         if o.default? && o.type
@@ -183,10 +180,11 @@ class AppKernel
       #if we find one we love, use it
       #otherwise, if there's a slurpy option, throw it on the pile
       #otherwise, it's an error.
-      def canonicalize(args, errors, augment = true)        
+      def canonicalize(args, errors, augment = true)
+        indexed = @indexed.compact
         positionals, parameters, rest = comb(args)
         unless @greedy
-          errors.add(nil,"too many arguments (#{positionals.length} for #{@indexed.length})") if positionals.length > @indexed.length
+          errors.add(nil,"too many arguments (#{positionals.length} for #{indexed.length})") if positionals.length > indexed.length
           for hash in rest
             for k,v in hash
               errors.add(k, "unknown option '#{k}'")
@@ -200,7 +198,7 @@ class AppKernel
             canonical[name] = @options[name].resolve(value)
           end          
           positionals.length.times do |i|          
-            if opt = @indexed[i]
+            if opt = indexed[i]
               canonical[opt.name] = opt.resolve(positionals[i])
             end
           end
@@ -224,7 +222,7 @@ class AppKernel
         parameters = {}
         rest_parameters = {}
         rest = []
-        index = @indexed.length
+        index = @indexed.compact.length
         for arg in args
           if Hash === arg
             for name,value in arg

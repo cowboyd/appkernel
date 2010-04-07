@@ -82,6 +82,20 @@ describe AppKernel::Function do
         result.errors.length.should be(2)
       end
     end
+
+    it "does not care what order the positional arguments were specified in" do
+      class_eval do
+        option :to, :index => 1
+        option :greeting, :index => 0
+
+        def execute
+          @greeting.should == "Hello"
+          @to.should == "World"
+        end
+      end
+
+      @function.call("Hello", "World")
+    end
   end
 
   describe "Error Handling" do
