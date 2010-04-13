@@ -1,16 +1,37 @@
 require 'rubygems'
-gem 'hoe', '>= 2.1.0'
-require 'hoe'
-require 'fileutils'
 
-$:.unshift File.dirname(__FILE__) + '/lib'
-require 'appkernel'
-
-
-# Generate all the Rake tasks
-# Run 'rake -T' to see list of generated tasks (from gem root directory)
-$hoe = Hoe.spec 'appkernel' do
-  self.developer 'Charles Lowell', 'cowboyd@thefrontside.net'
+$gemspec = Gem::Specification.new do |gemspec|
+  manifest = Rake::FileList.new("**/*")
+  manifest.exclude "**/*.gem"  
+  gemspec.name = "appkernel"
+  gemspec.version = "0.3.0"
+  gemspec.summary = "Functional Programming by Contract for Ruby"
+  gemspec.description = "validate, call, and curry your way to fun and profit!"
+  gemspec.email = "cowboyd@thefrontside.net"
+  gemspec.authors = ["Charles Lowell"]
+  gemspec.require_paths = ["lib"]
+  gemspec.files = manifest.to_a
 end
 
-task :default => :spec
+desc "Build gem"
+task :gem do
+  Gem::Builder.new($gemspec).build
+end
+
+desc "Build gemspec"
+task :gemspec do
+  File.open("#{$gemspec.name}.gemspec", "w") do |f|
+    f.write($gemspec.to_ruby)
+  end
+end
+
+task :clean do
+  sh "rm -rf *.gem"
+end
+
+
+for file in Dir['tasks/*.rake']
+  load file
+end
+
+
