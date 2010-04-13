@@ -1,5 +1,5 @@
-== 0.3.0 2010-03-XX
-* 2 major enhancement
+== 0.3.0 2010-04-12
+* 3 major enhancement
   * specify list parameters
   * allow list parameters to be greedy and slurp lots of arguments.
 * 3 minor enhancements
